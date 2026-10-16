@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Translatify - Traductor Inteligente de Documentos</title>
+  
+  <!-- Manifest para PWA -->
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#4f46e5">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='45' fill='%234f46e5'/><text x='50' y='65' font-size='42' font-family='sans-serif' text-anchor='middle' fill='white'>T</text></svg>">
+  
+  <!-- Tipografía Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="logo-area">
+        <div class="logo-icon">T</div>
+        <div class="app-title">
+          <h1>Translatify</h1>
+          <p>Traducción de documentos preservando maquetación</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button id="providerBadge" class="badge-mode free" title="Clic para cambiar motor de traducción">Cargando...</button>
+        <button id="btnSettings" class="btn-icon">⚙️ Motor / Ajustes</button>
+        <button id="btnInstall" class="btn-icon btn-install">📲 Instalar</button>
+      </div>
+    </header>
+
+    <!-- Alerta cuando está en Modo Simulación -->
+    <div id="mockBanner" class="mode-alert hidden">
+      <span>💡 <strong>Modo Simulación activo:</strong> Se añade la etiqueta <code>[ES]</code> sin traducir. Cambia a "Automático Gratuito" o "Gemini" para traducción real.</span>
+      <button id="btnOpenConfigFromBanner">Cambiar Motor</button>
+    </div>
+
+    <main class="main-card">
+      <!-- Zona de carga de archivos -->
+      <div class="dropzone" id="dropzone">
+        <span class="dropzone-icon">📄</span>
+        <h3>Arrastra tu documento aquí o haz clic</h3>
+        <p>Soporta archivos <strong>.docx</strong> (Word). Próximamente: PDF y EPUB</p>
+        <input type="file" id="fileInput" class="file-input" accept=".docx">
+      </div>
+
+      <!-- Previsualización del archivo seleccionado -->
+      <div class="file-preview" id="filePreview">
+        <div class="file-info">
+          <span style="font-size: 24px;">📑</span>
+          <div>
+            <div class="file-name" id="previewName">documento.docx</div>
+            <div class="file-size" id="previewSize">0 KB</div>
+          </div>
+        </div>
+        <button class="remove-file" id="removeFileBtn" title="Cambiar archivo">&times;</button>
+      </div>
+
+      <!-- Configuración de Idiomas y Tono -->
+      <div class="config-grid">
+        <div class="form-group">
+          <label for="sourceLang">Idioma Origen</label>
+          <select id="sourceLang">
+            <option value="en" selected>Inglés</option>
+            <option value="es">Español</option>
+            <option value="fr">Francés</option>
+            <option value="de">Alemán</option>
+            <option value="it">Italiano</option>
+            <option value="pt">Portugués</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="targetLang">Idioma Destino</label>
+          <select id="targetLang">
+            <option value="es" selected>Español</option>
+            <option value="en">Inglés</option>
+            <option value="fr">Francés</option>
+            <option value="de">Alemán</option>
+            <option value="it">Italiano</option>
+            <option value="pt">Portugués</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="tone">Tono de Traducción</label>
+          <select id="tone">
+            <option value="natural" selected>Natural y Fluido</option>
+            <option value="literario">Literario / Novela</option>
+            <option value="academico">Académico / Científico</option>
+            <option value="formal">Formal / Legal</option>
+            <option value="tecnico">Técnico / Software</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Botón de Envío -->
+      <button id="submitBtn" class="btn-submit" disabled>
+        <span>Traducir Documento</span>
+        <span>🚀</span>
+      </button>
+
+      <!-- Barra de Progreso en Vivo -->
+      <div class="progress-card" id="progressCard">
+        <div class="progress-header">
+          <span style="font-weight: 600;">Estado de la Traducción</span>
+          <span id="progressPercent" style="font-weight: 700; color: #a5b4fc;">0%</span>
+        </div>
+        <div class="progress-bar-bg">
+          <div class="progress-bar-fill" id="progressFill"></div>
+        </div>
+        <div class="progress-message" id="progressMessage">Preparando traducción...</div>
+      </div>
+
+      <!-- Área de Descarga del Archivo Traducido -->
+      <div class="download-area" id="downloadArea">
+        <a id="downloadBtn" href="#" class="btn-download">
+          <span>⬇️ Descargar Documento Traducido</span>
+        </a>
+      </div>
+    </main>
+
+    <!-- Modal de Configuración del Motor de Traducción -->
+    <div class="modal-backdrop" id="settingsModal">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h2>Motor de Traducción</h2>
+          <button class="modal-close" id="btnCloseModal">&times;</button>
+        </div>
+
+        <div class="radio-group">
+          <!-- Opción 1: Automático Gratuito (Sin Clave) -->
+          <label class="radio-card selected" id="cardFree">
+            <input type="radio" name="providerOption" value="free" id="radioFree" checked>
+            <div>
+              <div class="radio-title">🌟 Traductor Automático Gratuito (Recomendado)</div>
+              <div class="radio-desc">Traduce directamente sin requerir ninguna clave de API ni configuración. 100% funcional y listo para usar ahora mismo.</div>
+            </div>
+          </label>
+
+          <!-- Opción 2: Google Gemini IA Real -->
+          <label class="radio-card" id="cardGemini">
+            <input type="radio" name="providerOption" value="gemini" id="radioGemini">
+            <div>
+              <div class="radio-title">✨ Google Gemini (IA Avanzada)</div>
+              <div class="radio-desc">Traducción con modelos LLM de Google (requiere clave de API de Google AI Studio con la API de Gemini habilitada).</div>
+              
+              <div id="geminiKeyArea" style="margin-top: 12px; display: none;">
+                <label style="font-size: 0.8rem; font-weight: 600; display: block; margin-bottom: 4px;">Clave de API de Gemini:</label>
+                <input type="password" id="geminiApiKeyInput" placeholder="Pega tu clave de Google AI Studio..." style="width: 100%;">
+                
+                <div class="help-box">
+                  💡 <em>Si Google te devuelve el error ACCESS_TOKEN_TYPE_UNSUPPORTED, crea la clave en Google AI Studio seleccionando <strong>"Crear clave en un proyecto nuevo"</strong>.</em>
+                </div>
+              </div>
+            </div>
+          </label>
+
+          <!-- Opción 3: Mock Simulado -->
+          <label class="radio-card" id="cardMock">
+            <input type="radio" name="providerOption" value="mock" id="radioMock">
+            <div>
+              <div class="radio-title">🧪 Modo Simulado (Mock)</div>
+              <div class="radio-desc">Solo añade prefijos como <code>[ES]</code> sin traducir realmente.</div>
+            </div>
+          </label>
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn-secondary" id="btnCancelModal">Cancelar</button>
+          <button class="btn-primary" id="btnSaveConfig">Guardar Ajustes</button>
+        </div>
+      </div>
+    </div>
+
+    <footer>
+      <p>Translatify &copy; 2026 — Desarrollado con FastAPI, PWA y Python</p>
+    </footer>
+  </div>
+
+  <script src="/js/app.js"></script>
+</body>
+</html>
